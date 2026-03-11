@@ -1,0 +1,45 @@
+# =============================================================
+# .dockerignore - Files to EXCLUDE from the Docker image
+# =============================================================
+# WHY THIS FILE EXISTS:
+# When Docker builds an image, it sends all files in the current
+# directory to the Docker daemon. This file tells Docker to skip
+# files that aren't needed inside the container, making the
+# image smaller and builds faster.
+# =============================================================
+
+# Git files (version control history isn't needed in the container)
+.git
+.gitignore
+
+# GitHub Actions files (CI/CD config, not needed at runtime)
+.github/
+
+# Documentation and images (not needed to run n8n)
+*.md
+*.png
+LICENSE
+
+# Local environment files (secrets should come from env vars, not files)
+.env
+.env.local
+.env.*.local
+
+# Docker Compose (only used for local development)
+docker-compose.yml
+docker-compose.override.yml
+
+# Render config (used by Render platform, not by Docker)
+render.yaml
+
+# IDE and OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+Thumbs.db
+.DS_Store
+
+# Node modules (if any exist locally)
+node_modules/

@@ -1,0 +1,505 @@
+{
+  "name": "Auto Calendar",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -304,
+        -16
+      ],
+      "id": "15de3872-4cfc-4806-a739-bcf4c42fa3e1",
+      "name": "Telegram Trigger",
+      "webhookId": "3e4e6c23-7fba-465c-b70f-0a4efd087810"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {
+          "systemMessage": "=# Overview\nYou are a calendar assistant. Your responsibilities include creating, getting, and deleting events in the user's calendar.\n\nBased on the received information, process the eventName accordingly, be it a reminder, meeting or any other kind of event and give the title to the event.\n\n**Calendar Management Tools**\n- Use \"Create Event\" for creting events/reminders.\n- Use \"Get Events\" to fetch calendar schedules when requested.\n- Use \"Delete Event\" to delete an event. You must use \"Get Events\" first to get the ID of the event to delete.\n- Use \"Update Event\" to update an event. You must use \"Get Events\" first to get the ID of the event to update.\n\n## Final Notes\nHere is the current date/time: {{ $now }} \nAdd,update and delete events based on the date/time: {{ $now }}\nIf a duration for an event isn't specified, assume it will be one hour.\nDo not ask for extra information, work with what is available.\nDo not ask for any confirmation, use the input data as the only source for all quesries.\nIn case of \"Create Event\" also use the tool \"Get Events\" to check for conflicting events and then provide the user with conflicting details and ask for next step and then act accordingly.\nNo need to mention the timezone in the messages.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        816,
+        0
+      ],
+      "id": "8821fa32-366c-476c-b2f7-49b0bac7cb9f",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+        "contextWindowLength": 8
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        688,
+        240
+      ],
+      "id": "240324f8-7ab4-45e1-92cc-280e1ae53a68",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        -208
+      ],
+      "id": "f9454204-fe46-410d-90d8-9d74e4a48891",
+      "name": "Get a file",
+      "webhookId": "7e94557f-d146-49f6-a72c-cb0c1353597c"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6a16bbd1-efed-40e2-81c0-c63d124e8b25",
+              "name": "=text",
+              "value": "={{ $json.message.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        256,
+        0
+      ],
+      "id": "94b348ac-771f-40fc-8533-26d63c62e8da",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "51eb49c2-15c3-4d09-ad99-276e931dd95b",
+              "name": "text",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        512,
+        -208
+      ],
+      "id": "422a104b-69fb-4ecb-8f97-1a927e1fa60f",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.voice.file_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "aea8061f-77c7-402d-88f5-ba14b016a426"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Voice Message"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "397cf54a-fa95-4f43-8071-a88de15e8c8d",
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Text Message"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -128,
+        -16
+      ],
+      "id": "a6fd4712-352c-4207-86bb-380db861bad0",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": ""
+        },
+        "start": "={{ $fromAI('Start','it is the star date for the event/reminder') }}",
+        "end": "={{ $fromAI('End','it is the end date of the meeting, for reminder keep it 5 min') }}",
+        "useDefaultReminders": false,
+        "additionalFields": {
+          "attendees": [],
+          "color": "3",
+          "description": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Description', ``, 'string') }}",
+          "summary": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Summary', ``, 'string') }}"
+        },
+        "remindersUi": {
+          "remindersValues": [
+            {
+              "method": "popup",
+              "minutes": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('remindersValues0_Minutes_Before', ``, 'number') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        832,
+        240
+      ],
+      "id": "5ad8a0f7-6779-4de9-bcb1-cabf79f3bf89",
+      "name": "Create an Event"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "calendar": {
+          "__rl": true,
+          "value": "your@email.com_cf60ob41ljspl9udqnrsr8jgmk@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "your@email.com"
+        },
+        "eventId": "={{ $fromAI('Event_ID', 'it is the id of the specific event') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        976,
+        240
+      ],
+      "id": "d21e4753-036e-4f9d-858e-6718cee3f02c",
+      "name": "Delete an Event"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": ""
+        },
+        "returnAll": true,
+        "timeMin": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('After', ``, 'string') }}",
+        "timeMax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Before', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1120,
+        240
+      ],
+      "id": "e23c6170-42b1-4966-945f-35b78e6e8682",
+      "name": "Get Events"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1168,
+        0
+      ],
+      "id": "283b6f8a-a218-49df-98ed-e517779ebe4d",
+      "name": "Send a text message",
+      "webhookId": "00d03db1-4df2-47f2-a718-f44a0d5595b5"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "calendar": {
+          "__rl": true,
+          "value": "your@email.com",
+          "mode": "list",
+          "cachedResultName": "your@email.com"
+        },
+        "eventId": "={{ $fromAI('Event_ID', 'it is the id of the specific event') }}",
+        "updateFields": {
+          "end": "={{ $fromAI('End', 'it is the event ending date-time') }}",
+          "start": "={{ $fromAI('Start', 'it is the event date starting time') }}",
+          "summary": "={{ $fromAI('eventName', 'it is the name of calendar event') }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1264,
+        240
+      ],
+      "id": "1ea8374e-b54c-4a69-b908-69c504ef9762",
+      "name": "Update an Event"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        256,
+        -208
+      ],
+      "id": "06c54e6a-ca8f-4c2c-bda9-f9c18e06d1a0",
+      "name": "Transcribe a recording1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        544,
+        240
+      ],
+      "id": "3368774a-f2e2-4335-952a-d57ac188409a",
+      "name": "Google Gemini Chat Model"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a file": {
+      "main": [
+        [
+          {
+            "node": "Transcribe a recording1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Get a file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an Event": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete an Event": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Events": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update an Event": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe a recording1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "9ff0c64a-fdd3-4358-b93b-6d25824bbd34",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9e88eb38fca9b73f3b1e5b0e20bc9cc5a5160bc3baae18001650f3e99eb0c967"
+  },
+  "id": "amlXDQ5qq8vA3TK7",
+  "tags": []
+}

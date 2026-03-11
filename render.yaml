@@ -1,0 +1,61 @@
+# =============================================================
+# Render Blueprint - render.yaml
+# =============================================================
+# WHAT THIS DOES:
+# Tells Render how to deploy your service. Render reads this file
+# to understand what type of service to create and how to configure it.
+#
+# NOTE: Environment variables with 'sync: false' must be set manually
+# in the Render dashboard (they contain secrets).
+# =============================================================
+
+services:
+  - type: web
+    name: n8n-calendar-automation
+    runtime: image
+    image:
+      # This pulls the Docker image from your Docker Hub repository
+      url: docker.io/${{ secrets.DOCKER_USERNAME }}/n8n-calendar-automation:latest
+    plan: starter          # Render plan tier (starter, standard, pro)
+    region: oregon         # Deploy region
+    numInstances: 1
+
+    envVars:
+      # --- n8n Configuration ---
+      - key: N8N_BASIC_AUTH_ACTIVE
+        value: "true"
+      - key: N8N_PORT
+        value: "5678"
+      - key: N8N_PROTOCOL
+        value: "https"
+      - key: N8N_DIAGNOSTICS_ENABLED
+        value: "false"
+      - key: GENERIC_TIMEZONE
+        value: "Asia/Kolkata"
+      - key: N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS
+        value: "true"
+
+      # --- Secrets (must be set in Render Dashboard manually) ---
+      - key: N8N_BASIC_AUTH_USER
+        sync: false
+      - key: N8N_BASIC_AUTH_PASSWORD
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+
+    # --- Persistent Disk ---
+    # n8n stores its database, credentials, and workflow data in /home/node/.n8n
+    # Without a disk, ALL data (including credentials you set up in the UI)
+    # is lost on every deploy/restart.
+    disk:
+      name: n8n-data
+      mountPath: /home/node/.n8n
+      sizeGB: 1

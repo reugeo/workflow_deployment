@@ -1,0 +1,121 @@
+# =============================================================
+# GitHub Actions CI/CD Pipeline - deploy.yml
+# =============================================================
+# WHAT THIS DOES (Step by Step):
+#
+# 1. TRIGGER: Runs automatically when you push code to the 'main' branch
+# 2. BUILD:   Creates a Docker image containing n8n + your workflow JSON
+# 3. PUSH:    Uploads the Docker image to Docker Hub (a public image registry)
+# 4. DEPLOY:  Tells Render to pull the new image and redeploy your service
+#
+# PIPELINE FLOW:
+# Git Push → GitHub Actions → Docker Build → Docker Hub → Render Redeploy
+# =============================================================
+
+name: Build and Deploy to Render
+
+# --- TRIGGER ---
+# This section defines WHEN the pipeline runs
+on:
+  push:
+    branches:
+      - main    # Only run when code is pushed to the 'main' branch
+  workflow_dispatch:  # Also allow manual trigger from GitHub Actions UI
+
+# --- JOBS ---
+# Jobs are the steps that run in the pipeline
+jobs:
+
+  # =========================================================
+  # JOB 1: Build the Docker image and push to Docker Hub
+  # =========================================================
+  build-and-push:
+    name: 🐳 Build & Push Docker Image
+    runs-on: ubuntu-latest   # Use a fresh Ubuntu virtual machine
+
+    steps:
+      # ----- Step 1: Check out the code -----
+      # This downloads your repository code into the virtual machine
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      # ----- Step 2: Set up Docker Buildx -----
+      # Buildx is a Docker tool that enables advanced build features
+      # like caching (makes subsequent builds faster)
+      - name: 🔧 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ----- Step 3: Log in to Docker Hub -----
+      # Uses your Docker Hub credentials stored in GitHub Secrets
+      # Without this, you can't push images to Docker Hub
+      - name: 🔐 Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # ----- Step 4: Build and Push the Docker Image -----
+      # This is the main step:
+      # - Reads the Dockerfile
+      # - Builds the image with n8n + your workflow
+      # - Tags it with both 'latest' and the Git commit SHA
+      # - Pushes it to Docker Hub
+      - name: 🏗️ Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .                          # Build from the repo root
+          file: ./Dockerfile                  # Use our custom Dockerfile
+          push: true                          # Push to Docker Hub after building
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/n8n-calendar-automation:latest
+            ${{ secrets.DOCKER_USERNAME }}/n8n-calendar-automation:${{ github.sha }}
+          cache-from: type=gha                # Use GitHub Actions cache (faster builds)
+          cache-to: type=gha,mode=max
+
+      # ----- Step 5: Print image info -----
+      - name: 📋 Image pushed successfully
+        run: |
+          echo "✅ Docker image pushed successfully!"
+          echo "📦 Image: ${{ secrets.DOCKER_USERNAME }}/n8n-calendar-automation:latest"
+          echo "🏷️  SHA tag: ${{ secrets.DOCKER_USERNAME }}/n8n-calendar-automation:${{ github.sha }}"
+
+  # =========================================================
+  # JOB 2: Trigger a redeploy on Render
+  # =========================================================
+  deploy-to-render:
+    name: 🚀 Deploy to Render
+    runs-on: ubuntu-latest
+    needs: build-and-push    # This job WAITS for Job 1 to finish successfully
+
+    steps:
+      # ----- Step 1: Trigger Render Redeploy -----
+      # Calls the Render API to tell it to pull the latest Docker image
+      # and restart the service
+      - name: 🔄 Trigger Render redeploy
+        run: |
+          echo "🚀 Triggering redeploy on Render..."
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys" \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"clearCache": "do_not_clear"}')
+
+          echo "📡 Render API response code: $RESPONSE"
+
+          if [ "$RESPONSE" -eq 201 ] || [ "$RESPONSE" -eq 200 ]; then
+            echo "✅ Render redeploy triggered successfully!"
+          else
+            echo "❌ Failed to trigger Render redeploy (HTTP $RESPONSE)"
+            exit 1
+          fi
+
+      # ----- Step 2: Print deployment info -----
+      - name: 📋 Deployment summary
+        run: |
+          echo "============================================="
+          echo "  ✅ Deployment Pipeline Complete!"
+          echo "============================================="
+          echo "  📦 Image: ${{ secrets.DOCKER_USERNAME }}/n8n-calendar-automation:latest"
+          echo "  🚀 Render service redeploying..."
+          echo "  🔗 Check your Render dashboard for status"
+          echo "============================================="

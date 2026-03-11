@@ -1,0 +1,28 @@
+# =============================================================
+# .gitignore - Files that should NEVER be committed to Git
+# =============================================================
+# WHY: These files contain secrets, are auto-generated, or are
+# specific to your local machine.
+# =============================================================
+
+# Environment files (contain API keys and passwords!)
+.env
+.env.local
+.env.*.local
+
+# n8n data directory (auto-generated when n8n runs)
+.n8n/
+
+# Node.js
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
