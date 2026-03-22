@@ -7,6 +7,9 @@
 #
 # NOTE: Environment variables with 'sync: false' must be set manually
 # in the Render dashboard (they contain secrets).
+#
+# CREDENTIALS ARE NOW STORED IN SUPABASE POSTGRES (not on disk).
+# This means credentials survive every redeploy forever.
 # =============================================================
 
 services:
@@ -33,7 +36,36 @@ services:
       - key: GENERIC_TIMEZONE
         value: "Asia/Kolkata"
       - key: N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS
-        value: "true"
+        value: "false"   # must be false when there is no persistent disk
+
+      # --- n8n URL (set these manually in Render dashboard) ---
+      - key: N8N_HOST
+        sync: false      # e.g. your-service.onrender.com  (no https://)
+      - key: WEBHOOK_URL
+        sync: false      # e.g. https://your-service.onrender.com/
+
+      # --- Encryption key (CRITICAL - generate once, never change) ---
+      # Run this to generate: openssl rand -hex 32
+      # If you change this, all saved credentials become unreadable!
+      - key: N8N_ENCRYPTION_KEY
+        sync: false
+
+      # --- Database - Supabase Postgres ---
+      # Credentials survive every redeploy because they live in the DB, not on disk
+      - key: DB_TYPE
+        value: "postgresdb"
+      - key: DB_POSTGRESDB_HOST
+        sync: false      # from Supabase: Project Settings > Database > Host
+      - key: DB_POSTGRESDB_PORT
+        value: "5432"
+      - key: DB_POSTGRESDB_DATABASE
+        value: "postgres"
+      - key: DB_POSTGRESDB_USER
+        value: "postgres"
+      - key: DB_POSTGRESDB_PASSWORD
+        sync: false      # the password you set when creating the Supabase project
+      - key: DB_POSTGRESDB_SCHEMA
+        value: "public"
 
       # --- Secrets (must be set in Render Dashboard manually) ---
       - key: N8N_BASIC_AUTH_USER
@@ -51,11 +83,6 @@ services:
       - key: GEMINI_API_KEY
         sync: false
 
-    # --- Persistent Disk ---
-    # n8n stores its database, credentials, and workflow data in /home/node/.n8n
-    # Without a disk, ALL data (including credentials you set up in the UI)
-    # is lost on every deploy/restart.
-    disk:
-      name: n8n-data
-      mountPath: /home/node/.n8n
-      sizeGB: 1
+    # NOTE: No disk section here anymore.
+    # Previously the disk stored credentials, but it caused them to be wiped
+    # on every redeploy. Now Supabase Postgres stores everything permanently.
